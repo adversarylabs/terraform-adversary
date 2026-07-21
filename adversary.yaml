@@ -8,6 +8,11 @@ triggers:
     - "**/*.tf"
     - "**/*.tf.json"
 
+detection:
+  files:
+    - "**/*.tf"
+    - "**/*.tf.json"
+
 runtime:
   name: node
   version: "22"
