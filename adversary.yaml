@@ -1,5 +1,5 @@
 name: terraform
-version: 0.0.1
+version: 0.0.2
 description: Reviews Terraform for public exposure, mutable modules, and output leaks.
 
 triggers:
