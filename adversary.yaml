@@ -1,6 +1,6 @@
 name: terraform
-version: 0.0.3
-description: Reviews Terraform for public exposure, mutable modules, and output leaks.
+version: 0.0.4
+description: Reviews Terraform for public exposure, secrets in HCL, encryption, and module pinning.
 
 triggers:
   manual: true

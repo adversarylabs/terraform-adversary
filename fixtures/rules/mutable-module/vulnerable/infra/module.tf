@@ -1,1 +1,1 @@
-module "network" { source = "git::https://github.com/acme/network.git?ref=main" }
+module "vpc" { source = "git::https://github.com/org/mod.git?ref=main" }

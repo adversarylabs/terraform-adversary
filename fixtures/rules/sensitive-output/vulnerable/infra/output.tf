@@ -1,1 +1,1 @@
-output "database_password" { value = var.database_password }
+output "db_password" { value = aws_db_instance.db.password }

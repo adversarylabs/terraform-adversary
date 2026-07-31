@@ -1,1 +1,1 @@
-module "network" { source = "git::https://github.com/acme/network.git?ref=8fbc4c6fef7f5d0fdf04a2f4aa47d2ae315c00aa" }
+module "vpc" { source = "git::https://github.com/org/mod.git?ref=a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2" }
