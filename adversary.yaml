@@ -1,4 +1,4 @@
-name: terraform
+name: infra/terraform
 version: 0.0.4
 description: Reviews Terraform for public exposure, secrets in HCL, encryption, and module pinning.
 
