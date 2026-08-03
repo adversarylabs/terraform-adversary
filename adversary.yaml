@@ -1,5 +1,5 @@
 name: infra/terraform
-version: 0.0.5
+version: 0.0.6
 description: Reviews Terraform for public exposure, secrets in HCL, encryption, and module pinning.
 
 triggers:
