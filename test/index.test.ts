@@ -5,7 +5,7 @@ import { createApp } from "../src/index.ts";
 
 const fixture = (name: string) => new URL(`../fixtures/${name}`, import.meta.url).pathname;
 const review = (name: string, raw = false) => createApp().run({ input: { source: { path: fixture(name) } }, includeRawObservations: raw });
-const ruleCases = [{"key": "public-ingress", "id": "terraform.public-ingress"}, {"key": "s3-public-acl", "id": "terraform.s3-public-acl"}, {"key": "rds-publicly-accessible", "id": "terraform.rds-publicly-accessible"}, {"key": "sensitive-output", "id": "terraform.sensitive-output"}, {"key": "inline-secret", "id": "terraform.inline-secret"}, {"key": "iam-admin-wildcard", "id": "terraform.iam-admin-wildcard"}, {"key": "storage-unencrypted", "id": "terraform.storage-unencrypted"}, {"key": "mutable-module", "id": "terraform.mutable-module"}];
+const ruleCases = [{"key": "public-ingress", "id": "terraform.public-ingress"}, {"key": "s3-public-acl", "id": "terraform.s3-public-acl"}, {"key": "rds-publicly-accessible", "id": "terraform.rds-publicly-accessible"}, {"key": "sensitive-output", "id": "terraform.sensitive-output"}, {"key": "inline-secret", "id": "terraform.inline-secret"}, {"key": "iam-admin-wildcard", "id": "terraform.iam-admin-wildcard"}, {"key": "storage-unencrypted", "id": "terraform.storage-unencrypted"}, {"key": "cloudtrail-bucket-policy-source-arn", "id": "terraform.cloudtrail-bucket-policy-source-arn"}, {"key": "mutable-module", "id": "terraform.mutable-module"}];
 
 test("every shipped rule has focused vulnerable and clean coverage", async () => {
   for (const rule of ruleCases) {
