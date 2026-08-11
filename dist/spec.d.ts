@@ -15,6 +15,13 @@ interface MissingContentMatch {
     trigger: MatchExpression;
     required: MatchExpression;
 }
+interface BlockMissingContentMatch {
+    kind: "block-missing-content";
+    files: string[];
+    blockStart: MatchExpression;
+    trigger: MatchExpression;
+    required: MatchExpression;
+}
 interface MissingFileMatch {
     kind: "missing-file";
     triggerFiles: string[];
@@ -32,7 +39,7 @@ export interface RuleSpec {
     recommendation: string;
     complexity: "trivial" | "small" | "medium" | "large";
     tags: string[];
-    match: ContentMatch | MissingContentMatch | MissingFileMatch;
+    match: ContentMatch | MissingContentMatch | BlockMissingContentMatch | MissingFileMatch;
 }
 export interface AdversarySpec {
     id: string;
@@ -192,6 +199,34 @@ export declare const spec: {
                 readonly flags: "i";
             };
             readonly requires: [];
+        };
+    }, {
+        readonly id: "terraform.cloudtrail-bucket-policy-source-arn";
+        readonly title: "CloudTrail bucket writes are not scoped to a trail ARN";
+        readonly summary: "CloudTrail bucket writes are not scoped to a trail ARN";
+        readonly category: "security";
+        readonly severity: "high";
+        readonly confidence: "high";
+        readonly whyItMatters: "A CloudTrail service principal without an aws:SourceArn condition is not bound to an intended trail and weakens confused-deputy protection.";
+        readonly impact: "An unintended CloudTrail trail may be able to write objects through the bucket policy's service-principal grant.";
+        readonly recommendation: "Add an aws:SourceArn condition to the CloudTrail PutObject statement and bind it to the intended trail ARN or a deliberately scoped trail pattern.";
+        readonly complexity: "small";
+        readonly tags: ["security", "cloudtrail", "bucket-policy"];
+        readonly match: {
+            readonly kind: "block-missing-content";
+            readonly files: ["**/*.tf"];
+            readonly blockStart: {
+                readonly pattern: "\\bstatement\\s*\\{";
+                readonly flags: "i";
+            };
+            readonly trigger: {
+                readonly pattern: "(?:cloudtrail\\.amazonaws\\.com[\\s\\S]*s3:PutObject|s3:PutObject[\\s\\S]*cloudtrail\\.amazonaws\\.com)";
+                readonly flags: "i";
+            };
+            readonly required: {
+                readonly pattern: "aws:SourceArn";
+                readonly flags: "i";
+            };
         };
     }, {
         readonly id: "terraform.mutable-module";

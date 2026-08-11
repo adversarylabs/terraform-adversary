@@ -46,6 +46,14 @@ function evaluate(rule, sources, allPaths) {
             return [{ rule, file: file.path, ...location, label: rule.title, data: { requiredPattern: match.required.pattern } }];
         });
     }
+    if (match.kind === "block-missing-content") {
+        return matchingSources.flatMap((file) => extractBlocks(file.source, match.blockStart).flatMap((block) => {
+            if (!test(block.source, match.trigger) || test(block.source, match.required))
+                return [];
+            const location = locateFromIndex(file.source, block.start);
+            return [{ rule, file: file.path, ...location, label: rule.title, data: { requiredPattern: match.required.pattern } }];
+        }));
+    }
     return matchingSources.flatMap((file) => {
         if (!match.requires.every((pattern) => test(file.source, pattern)))
             return [];
@@ -62,8 +70,81 @@ function locate(source, expression) {
     const match = new RegExp(expression.pattern, expression.flags).exec(source);
     if (match?.index === undefined)
         return undefined;
-    const line = source.slice(0, match.index).split(/\r?\n/).length;
+    return locateFromIndex(source, match.index);
+}
+function locateFromIndex(source, index) {
+    const line = source.slice(0, index).split(/\r?\n/).length;
     return { line, snippet: source.split(/\r?\n/)[line - 1]?.trim().slice(0, 240) ?? "" };
+}
+function extractBlocks(source, start) {
+    const flags = start.flags.includes("g") ? start.flags : `${start.flags}g`;
+    const expression = new RegExp(start.pattern, flags);
+    const blocks = [];
+    let match;
+    while ((match = expression.exec(source)) !== null) {
+        const relativeBrace = match[0].lastIndexOf("{");
+        if (relativeBrace < 0)
+            continue;
+        const openingBrace = match.index + relativeBrace;
+        const end = findClosingBrace(source, openingBrace);
+        if (end === undefined)
+            continue;
+        blocks.push({ source: source.slice(match.index, end + 1), start: match.index });
+        expression.lastIndex = end + 1;
+    }
+    return blocks;
+}
+function findClosingBrace(source, openingBrace) {
+    let depth = 0;
+    let inString = false;
+    let inLineComment = false;
+    let inBlockComment = false;
+    let escaped = false;
+    for (let index = openingBrace; index < source.length; index += 1) {
+        const character = source[index];
+        const next = source[index + 1];
+        if (inLineComment) {
+            if (character === "\n")
+                inLineComment = false;
+            continue;
+        }
+        if (inBlockComment) {
+            if (character === "*" && next === "/") {
+                inBlockComment = false;
+                index += 1;
+            }
+            continue;
+        }
+        if (inString) {
+            if (escaped)
+                escaped = false;
+            else if (character === "\\")
+                escaped = true;
+            else if (character === "\"")
+                inString = false;
+            continue;
+        }
+        if (character === "#" || (character === "/" && next === "/")) {
+            inLineComment = true;
+            if (character === "/")
+                index += 1;
+            continue;
+        }
+        if (character === "/" && next === "*") {
+            inBlockComment = true;
+            index += 1;
+            continue;
+        }
+        if (character === "\"") {
+            inString = true;
+            continue;
+        }
+        if (character === "{")
+            depth += 1;
+        else if (character === "}" && --depth === 0)
+            return index;
+    }
+    return undefined;
 }
 async function walk(root) {
     const files = [];

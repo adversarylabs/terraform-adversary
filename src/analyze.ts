@@ -54,6 +54,16 @@ function evaluate(rule: RuleSpec, sources: SourceFile[], allPaths: string[]): De
     });
   }
 
+  if (match.kind === "block-missing-content") {
+    return matchingSources.flatMap((file) =>
+      extractBlocks(file.source, match.blockStart).flatMap((block) => {
+        if (!test(block.source, match.trigger) || test(block.source, match.required)) return [];
+        const location = locateFromIndex(file.source, block.start);
+        return [{ rule, file: file.path, ...location, label: rule.title, data: { requiredPattern: match.required.pattern } }];
+      }),
+    );
+  }
+
   return matchingSources.flatMap((file) => {
     if (!match.requires.every((pattern) => test(file.source, pattern))) return [];
     const location = locate(file.source, match.pattern);
@@ -69,8 +79,66 @@ function test(source: string, expression: MatchExpression): boolean {
 function locate(source: string, expression: MatchExpression): { line: number; snippet: string } | undefined {
   const match = new RegExp(expression.pattern, expression.flags).exec(source);
   if (match?.index === undefined) return undefined;
-  const line = source.slice(0, match.index).split(/\r?\n/).length;
+  return locateFromIndex(source, match.index);
+}
+
+function locateFromIndex(source: string, index: number): { line: number; snippet: string } {
+  const line = source.slice(0, index).split(/\r?\n/).length;
   return { line, snippet: source.split(/\r?\n/)[line - 1]?.trim().slice(0, 240) ?? "" };
+}
+
+function extractBlocks(source: string, start: MatchExpression): Array<{ source: string; start: number }> {
+  const flags = start.flags.includes("g") ? start.flags : `${start.flags}g`;
+  const expression = new RegExp(start.pattern, flags);
+  const blocks: Array<{ source: string; start: number }> = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = expression.exec(source)) !== null) {
+    const relativeBrace = match[0].lastIndexOf("{");
+    if (relativeBrace < 0) continue;
+    const openingBrace = match.index + relativeBrace;
+    const end = findClosingBrace(source, openingBrace);
+    if (end === undefined) continue;
+    blocks.push({ source: source.slice(match.index, end + 1), start: match.index });
+    expression.lastIndex = end + 1;
+  }
+
+  return blocks;
+}
+
+function findClosingBrace(source: string, openingBrace: number): number | undefined {
+  let depth = 0;
+  let inString = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let escaped = false;
+
+  for (let index = openingBrace; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (inLineComment) {
+      if (character === "\n") inLineComment = false;
+      continue;
+    }
+    if (inBlockComment) {
+      if (character === "*" && next === "/") { inBlockComment = false; index += 1; }
+      continue;
+    }
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "\"") inString = false;
+      continue;
+    }
+    if (character === "#" || (character === "/" && next === "/")) { inLineComment = true; if (character === "/") index += 1; continue; }
+    if (character === "/" && next === "*") { inBlockComment = true; index += 1; continue; }
+    if (character === "\"") { inString = true; continue; }
+    if (character === "{") depth += 1;
+    else if (character === "}" && --depth === 0) return index;
+  }
+
+  return undefined;
 }
 
 async function walk(root: string): Promise<string[]> {

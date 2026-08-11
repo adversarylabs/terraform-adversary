@@ -3,11 +3,12 @@ import { type Confidence, type Severity } from "@adversarylabs/sdk";
 export interface MatchExpression { pattern: string; flags: string }
 interface ContentMatch { kind: "content"; files: string[]; pattern: MatchExpression; requires: MatchExpression[] }
 interface MissingContentMatch { kind: "missing-content"; files: string[]; trigger: MatchExpression; required: MatchExpression }
+interface BlockMissingContentMatch { kind: "block-missing-content"; files: string[]; blockStart: MatchExpression; trigger: MatchExpression; required: MatchExpression }
 interface MissingFileMatch { kind: "missing-file"; triggerFiles: string[]; requiredFiles: string[] }
 export interface RuleSpec {
   id: string; title: string; summary: string; category: string; severity: Severity; confidence: Confidence;
   whyItMatters: string; impact: string; recommendation: string; complexity: "trivial" | "small" | "medium" | "large"; tags: string[];
-  match: ContentMatch | MissingContentMatch | MissingFileMatch;
+  match: ContentMatch | MissingContentMatch | BlockMissingContentMatch | MissingFileMatch;
 }
 export interface AdversarySpec { id: string; displayName: string; description: string; files: string[]; rules: RuleSpec[] }
 
@@ -214,6 +215,41 @@ export const spec = {
           "flags": "i"
         },
         "requires": []
+      }
+    },
+    {
+      "id": "terraform.cloudtrail-bucket-policy-source-arn",
+      "title": "CloudTrail bucket writes are not scoped to a trail ARN",
+      "summary": "CloudTrail bucket writes are not scoped to a trail ARN",
+      "category": "security",
+      "severity": "high",
+      "confidence": "high",
+      "whyItMatters": "A CloudTrail service principal without an aws:SourceArn condition is not bound to an intended trail and weakens confused-deputy protection.",
+      "impact": "An unintended CloudTrail trail may be able to write objects through the bucket policy's service-principal grant.",
+      "recommendation": "Add an aws:SourceArn condition to the CloudTrail PutObject statement and bind it to the intended trail ARN or a deliberately scoped trail pattern.",
+      "complexity": "small",
+      "tags": [
+        "security",
+        "cloudtrail",
+        "bucket-policy"
+      ],
+      "match": {
+        "kind": "block-missing-content",
+        "files": [
+          "**/*.tf"
+        ],
+        "blockStart": {
+          "pattern": "\\bstatement\\s*\\{",
+          "flags": "i"
+        },
+        "trigger": {
+          "pattern": "(?:cloudtrail\\.amazonaws\\.com[\\s\\S]*s3:PutObject|s3:PutObject[\\s\\S]*cloudtrail\\.amazonaws\\.com)",
+          "flags": "i"
+        },
+        "required": {
+          "pattern": "aws:SourceArn",
+          "flags": "i"
+        }
       }
     },
     {
