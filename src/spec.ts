@@ -3,12 +3,13 @@ import { type Confidence, type Severity } from "@adversarylabs/sdk";
 export interface MatchExpression { pattern: string; flags: string }
 interface ContentMatch { kind: "content"; files: string[]; pattern: MatchExpression; requires: MatchExpression[] }
 interface MissingContentMatch { kind: "missing-content"; files: string[]; trigger: MatchExpression; required: MatchExpression }
+interface BlockContentMatch { kind: "block-content"; files: string[]; blockStart: MatchExpression; pattern: MatchExpression; excludes?: MatchExpression[] }
 interface BlockMissingContentMatch { kind: "block-missing-content"; files: string[]; blockStart: MatchExpression; trigger: MatchExpression; required: MatchExpression }
 interface MissingFileMatch { kind: "missing-file"; triggerFiles: string[]; requiredFiles: string[] }
 export interface RuleSpec {
   id: string; title: string; summary: string; category: string; severity: Severity; confidence: Confidence;
   whyItMatters: string; impact: string; recommendation: string; complexity: "trivial" | "small" | "medium" | "large"; tags: string[];
-  match: ContentMatch | MissingContentMatch | BlockMissingContentMatch | MissingFileMatch;
+  match: ContentMatch | MissingContentMatch | BlockContentMatch | BlockMissingContentMatch | MissingFileMatch;
 }
 export interface AdversarySpec { id: string; displayName: string; description: string; files: string[]; rules: RuleSpec[] }
 
@@ -250,6 +251,43 @@ export const spec = {
           "pattern": "aws:SourceArn",
           "flags": "i"
         }
+      }
+    },
+    {
+      "id": "terraform.cloudfront-weak-viewer-tls",
+      "title": "CloudFront viewer TLS floor permits deprecated protocols",
+      "summary": "CloudFront viewer TLS floor permits deprecated protocols",
+      "category": "security",
+      "severity": "medium",
+      "confidence": "high",
+      "whyItMatters": "An explicit TLS 1.0 or 1.1 CloudFront viewer policy keeps deprecated protocol versions available to clients.",
+      "impact": "Viewer connections may negotiate legacy TLS instead of the current TLS 1.2 security policy.",
+      "recommendation": "Set the CloudFront viewer minimum protocol version to TLSv1.2_2021 and account for intentionally dropping TLS 1.0/1.1 clients.",
+      "complexity": "small",
+      "tags": [
+        "security",
+        "cloudfront",
+        "tls"
+      ],
+      "match": {
+        "kind": "block-content",
+        "files": [
+          "**/*.tf"
+        ],
+        "blockStart": {
+          "pattern": "^[ \\t]*(?:viewer_certificate|variable\\s+[\\\"']minimum_protocol_version[\\\"'])\\s*\\{",
+          "flags": "im"
+        },
+        "pattern": {
+          "pattern": "^[ \\t]*(?:minimum_protocol_version|default)\\s*=\\s*[\\\"'](?:SSLv3|TLSv1|TLSv1_2016|TLSv1\\.1_2016)[\\\"']",
+          "flags": "im"
+        },
+        "excludes": [
+          {
+            "pattern": "^[ \\t]*cloudfront_default_certificate\\s*=\\s*true",
+            "flags": "im"
+          }
+        ]
       }
     },
     {

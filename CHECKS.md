@@ -103,6 +103,17 @@ Public grounding includes common Terraform risk classes documented by HashiCorp 
 
 ## Medium
 
+### `terraform.cloudfront-weak-viewer-tls`
+
+| | |
+| --- | --- |
+| **What** | CloudFront explicitly permits viewer connections below TLS 1.2 |
+| **Why** | TLS 1.0 and 1.1 are deprecated; retaining a weak viewer policy lets clients negotiate legacy protocol versions |
+| **Looks for** | `SSLv3`, `TLSv1`, `TLSv1_2016`, or `TLSv1.1_2016` in a `viewer_certificate` block, or as the default of a module's `minimum_protocol_version` variable |
+| **Stays quiet when** | The floor is a TLS 1.2 policy; a weak value appears only in a comment; another unrelated variable contains a TLS-looking string; the CloudFront default certificate makes the setting inapplicable |
+| **Public examples** | [Cloud Posse module migration and member approval](https://github.com/cloudposse/terraform-aws-cloudfront-cdn/pull/117); [AWS Labs Terraform module](https://github.com/awslabs/nx-plugin-for-aws/pull/948) |
+| **Remediation** | Set `minimum_protocol_version = "TLSv1.2_2021"` and treat loss of TLS 1.0/1.1 clients as an intentional compatibility change |
+
 ### `terraform.mutable-module`
 
 | | |

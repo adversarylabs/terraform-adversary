@@ -64,6 +64,19 @@ function evaluate(rule: RuleSpec, sources: SourceFile[], allPaths: string[]): De
     );
   }
 
+  if (match.kind === "block-content") {
+    return matchingSources.flatMap((file) =>
+      extractBlocks(file.source, match.blockStart).flatMap((block) => {
+        const searchableBlock = maskComments(block.source);
+        if (match.excludes?.some((expression) => test(searchableBlock, expression))) return [];
+        const blockMatch = new RegExp(match.pattern.pattern, match.pattern.flags).exec(searchableBlock);
+        if (blockMatch?.index === undefined) return [];
+        const location = locateFromIndex(file.source, block.start + blockMatch.index);
+        return [{ rule, file: file.path, ...location, label: rule.title, data: { matchedPattern: match.pattern.pattern } }];
+      }),
+    );
+  }
+
   return matchingSources.flatMap((file) => {
     if (!match.requires.every((pattern) => test(file.source, pattern))) return [];
     const location = locate(file.source, match.pattern);
@@ -88,22 +101,74 @@ function locateFromIndex(source: string, index: number): { line: number; snippet
 }
 
 function extractBlocks(source: string, start: MatchExpression): Array<{ source: string; start: number }> {
+  const searchableSource = maskComments(source);
   const flags = start.flags.includes("g") ? start.flags : `${start.flags}g`;
   const expression = new RegExp(start.pattern, flags);
   const blocks: Array<{ source: string; start: number }> = [];
   let match: RegExpExecArray | null;
 
-  while ((match = expression.exec(source)) !== null) {
+  while ((match = expression.exec(searchableSource)) !== null) {
     const relativeBrace = match[0].lastIndexOf("{");
     if (relativeBrace < 0) continue;
     const openingBrace = match.index + relativeBrace;
-    const end = findClosingBrace(source, openingBrace);
+    const end = findClosingBrace(searchableSource, openingBrace);
     if (end === undefined) continue;
     blocks.push({ source: source.slice(match.index, end + 1), start: match.index });
     expression.lastIndex = end + 1;
   }
 
   return blocks;
+}
+
+function maskComments(source: string): string {
+  const output = source.split("");
+  let inString = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let escaped = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (inLineComment) {
+      if (character === "\n") inLineComment = false;
+      else output[index] = " ";
+      continue;
+    }
+    if (inBlockComment) {
+      output[index] = character === "\n" ? "\n" : " ";
+      if (character === "*" && next === "/") {
+        output[index + 1] = " ";
+        inBlockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "\"") inString = false;
+      continue;
+    }
+    if (character === "\"") { inString = true; continue; }
+    if (character === "#") { output[index] = " "; inLineComment = true; continue; }
+    if (character === "/" && next === "/") {
+      output[index] = " ";
+      output[index + 1] = " ";
+      inLineComment = true;
+      index += 1;
+      continue;
+    }
+    if (character === "/" && next === "*") {
+      output[index] = " ";
+      output[index + 1] = " ";
+      inBlockComment = true;
+      index += 1;
+    }
+  }
+
+  return output.join("");
 }
 
 function findClosingBrace(source: string, openingBrace: number): number | undefined {
