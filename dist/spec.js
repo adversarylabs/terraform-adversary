@@ -239,6 +239,43 @@ export const spec = {
             }
         },
         {
+            "id": "terraform.cloudfront-weak-viewer-tls",
+            "title": "CloudFront viewer TLS floor permits deprecated protocols",
+            "summary": "CloudFront viewer TLS floor permits deprecated protocols",
+            "category": "security",
+            "severity": "medium",
+            "confidence": "high",
+            "whyItMatters": "An explicit TLS 1.0 or 1.1 CloudFront viewer policy keeps deprecated protocol versions available to clients.",
+            "impact": "Viewer connections may negotiate legacy TLS instead of the current TLS 1.2 security policy.",
+            "recommendation": "Set the CloudFront viewer minimum protocol version to TLSv1.2_2021 and account for intentionally dropping TLS 1.0/1.1 clients.",
+            "complexity": "small",
+            "tags": [
+                "security",
+                "cloudfront",
+                "tls"
+            ],
+            "match": {
+                "kind": "block-content",
+                "files": [
+                    "**/*.tf"
+                ],
+                "blockStart": {
+                    "pattern": "^[ \\t]*(?:viewer_certificate|variable\\s+[\\\"']minimum_protocol_version[\\\"'])\\s*\\{",
+                    "flags": "im"
+                },
+                "pattern": {
+                    "pattern": "^[ \\t]*(?:minimum_protocol_version|default)\\s*=\\s*[\\\"'](?:SSLv3|TLSv1|TLSv1_2016|TLSv1\\.1_2016)[\\\"']",
+                    "flags": "im"
+                },
+                "excludes": [
+                    {
+                        "pattern": "^[ \\t]*cloudfront_default_certificate\\s*=\\s*true",
+                        "flags": "im"
+                    }
+                ]
+            }
+        },
+        {
             "id": "terraform.mutable-module",
             "title": "VCS module tracks a mutable branch",
             "summary": "VCS module tracks a mutable branch",

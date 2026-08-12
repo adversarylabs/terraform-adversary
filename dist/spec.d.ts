@@ -15,6 +15,13 @@ interface MissingContentMatch {
     trigger: MatchExpression;
     required: MatchExpression;
 }
+interface BlockContentMatch {
+    kind: "block-content";
+    files: string[];
+    blockStart: MatchExpression;
+    pattern: MatchExpression;
+    excludes?: MatchExpression[];
+}
 interface BlockMissingContentMatch {
     kind: "block-missing-content";
     files: string[];
@@ -39,7 +46,7 @@ export interface RuleSpec {
     recommendation: string;
     complexity: "trivial" | "small" | "medium" | "large";
     tags: string[];
-    match: ContentMatch | MissingContentMatch | BlockMissingContentMatch | MissingFileMatch;
+    match: ContentMatch | MissingContentMatch | BlockContentMatch | BlockMissingContentMatch | MissingFileMatch;
 }
 export interface AdversarySpec {
     id: string;
@@ -227,6 +234,34 @@ export declare const spec: {
                 readonly pattern: "aws:SourceArn";
                 readonly flags: "i";
             };
+        };
+    }, {
+        readonly id: "terraform.cloudfront-weak-viewer-tls";
+        readonly title: "CloudFront viewer TLS floor permits deprecated protocols";
+        readonly summary: "CloudFront viewer TLS floor permits deprecated protocols";
+        readonly category: "security";
+        readonly severity: "medium";
+        readonly confidence: "high";
+        readonly whyItMatters: "An explicit TLS 1.0 or 1.1 CloudFront viewer policy keeps deprecated protocol versions available to clients.";
+        readonly impact: "Viewer connections may negotiate legacy TLS instead of the current TLS 1.2 security policy.";
+        readonly recommendation: "Set the CloudFront viewer minimum protocol version to TLSv1.2_2021 and account for intentionally dropping TLS 1.0/1.1 clients.";
+        readonly complexity: "small";
+        readonly tags: ["security", "cloudfront", "tls"];
+        readonly match: {
+            readonly kind: "block-content";
+            readonly files: ["**/*.tf"];
+            readonly blockStart: {
+                readonly pattern: "^[ \\t]*(?:viewer_certificate|variable\\s+[\\\"']minimum_protocol_version[\\\"'])\\s*\\{";
+                readonly flags: "im";
+            };
+            readonly pattern: {
+                readonly pattern: "^[ \\t]*(?:minimum_protocol_version|default)\\s*=\\s*[\\\"'](?:SSLv3|TLSv1|TLSv1_2016|TLSv1\\.1_2016)[\\\"']";
+                readonly flags: "im";
+            };
+            readonly excludes: [{
+                readonly pattern: "^[ \\t]*cloudfront_default_certificate\\s*=\\s*true";
+                readonly flags: "im";
+            }];
         };
     }, {
         readonly id: "terraform.mutable-module";

@@ -16,6 +16,7 @@ Review Terraform for public exposure, secrets in HCL, encryption, and module pin
 - Secrets in HCL
 - Missing encryption
 - Unpinned modules
+- Explicitly weak CloudFront viewer TLS policies
 
 ## Out of scope (not a miss for this adversary)
 
