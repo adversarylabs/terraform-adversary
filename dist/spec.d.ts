@@ -7,6 +7,7 @@ interface ContentMatch {
     kind: "content";
     files: string[];
     pattern: MatchExpression;
+    anchors?: MatchExpression[];
     requires: MatchExpression[];
 }
 interface MissingContentMatch {
@@ -27,6 +28,7 @@ interface BlockMissingContentMatch {
     files: string[];
     blockStart: MatchExpression;
     trigger: MatchExpression;
+    anchors?: MatchExpression[];
     required: MatchExpression;
 }
 interface MissingFileMatch {
@@ -79,6 +81,13 @@ export declare const spec: {
                 readonly pattern: "(?:cidr_blocks|source_ranges)\\s*=\\s*\\[[^\\]]*[\\\"']0\\.0\\.0\\.0/0[\\\"'][^\\]]*\\][\\s\\S]{0,80}from_port\\s*=\\s*(?:22|3389|3306|5432|6379|27017|9200|11211)\\b";
                 readonly flags: "i";
             };
+            readonly anchors: [{
+                readonly pattern: "(?:cidr_blocks|source_ranges)\\s*=\\s*\\[[^\\]]*[\\\"']0\\.0\\.0\\.0/0[\\\"'][^\\]]*\\]";
+                readonly flags: "i";
+            }, {
+                readonly pattern: "from_port\\s*=\\s*(?:22|3389|3306|5432|6379|27017|9200|11211)\\b";
+                readonly flags: "i";
+            }];
             readonly requires: [];
         };
     }, {
@@ -184,6 +193,16 @@ export declare const spec: {
                 readonly pattern: "actions\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\][\\s\\S]{0,80}resources\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]|arn:aws:iam::aws:policy/AdministratorAccess";
                 readonly flags: "i";
             };
+            readonly anchors: [{
+                readonly pattern: "actions\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]";
+                readonly flags: "i";
+            }, {
+                readonly pattern: "resources\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]";
+                readonly flags: "i";
+            }, {
+                readonly pattern: "arn:aws:iam::aws:policy/AdministratorAccess";
+                readonly flags: "i";
+            }];
             readonly requires: [];
         };
     }, {
@@ -230,6 +249,13 @@ export declare const spec: {
                 readonly pattern: "(?:cloudtrail\\.amazonaws\\.com[\\s\\S]*s3:PutObject|s3:PutObject[\\s\\S]*cloudtrail\\.amazonaws\\.com)";
                 readonly flags: "i";
             };
+            readonly anchors: [{
+                readonly pattern: "cloudtrail\\.amazonaws\\.com";
+                readonly flags: "i";
+            }, {
+                readonly pattern: "s3:PutObject";
+                readonly flags: "i";
+            }];
             readonly required: {
                 readonly pattern: "aws:SourceArn";
                 readonly flags: "i";

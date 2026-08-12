@@ -1,10 +1,10 @@
 import { type Confidence, type Severity } from "@adversarylabs/sdk";
 
 export interface MatchExpression { pattern: string; flags: string }
-interface ContentMatch { kind: "content"; files: string[]; pattern: MatchExpression; requires: MatchExpression[] }
+interface ContentMatch { kind: "content"; files: string[]; pattern: MatchExpression; anchors?: MatchExpression[]; requires: MatchExpression[] }
 interface MissingContentMatch { kind: "missing-content"; files: string[]; trigger: MatchExpression; required: MatchExpression }
 interface BlockContentMatch { kind: "block-content"; files: string[]; blockStart: MatchExpression; pattern: MatchExpression; excludes?: MatchExpression[] }
-interface BlockMissingContentMatch { kind: "block-missing-content"; files: string[]; blockStart: MatchExpression; trigger: MatchExpression; required: MatchExpression }
+interface BlockMissingContentMatch { kind: "block-missing-content"; files: string[]; blockStart: MatchExpression; trigger: MatchExpression; anchors?: MatchExpression[]; required: MatchExpression }
 interface MissingFileMatch { kind: "missing-file"; triggerFiles: string[]; requiredFiles: string[] }
 export interface RuleSpec {
   id: string; title: string; summary: string; category: string; severity: Severity; confidence: Confidence;
@@ -47,6 +47,16 @@ export const spec = {
           "pattern": "(?:cidr_blocks|source_ranges)\\s*=\\s*\\[[^\\]]*[\\\"']0\\.0\\.0\\.0/0[\\\"'][^\\]]*\\][\\s\\S]{0,80}from_port\\s*=\\s*(?:22|3389|3306|5432|6379|27017|9200|11211)\\b",
           "flags": "i"
         },
+        "anchors": [
+          {
+            "pattern": "(?:cidr_blocks|source_ranges)\\s*=\\s*\\[[^\\]]*[\\\"']0\\.0\\.0\\.0/0[\\\"'][^\\]]*\\]",
+            "flags": "i"
+          },
+          {
+            "pattern": "from_port\\s*=\\s*(?:22|3389|3306|5432|6379|27017|9200|11211)\\b",
+            "flags": "i"
+          }
+        ],
         "requires": []
       }
     },
@@ -187,6 +197,20 @@ export const spec = {
           "pattern": "actions\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\][\\s\\S]{0,80}resources\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]|arn:aws:iam::aws:policy/AdministratorAccess",
           "flags": "i"
         },
+        "anchors": [
+          {
+            "pattern": "actions\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]",
+            "flags": "i"
+          },
+          {
+            "pattern": "resources\\s*=\\s*\\[\\s*[\\\"']\\*[\\\"']\\s*\\]",
+            "flags": "i"
+          },
+          {
+            "pattern": "arn:aws:iam::aws:policy/AdministratorAccess",
+            "flags": "i"
+          }
+        ],
         "requires": []
       }
     },
@@ -247,6 +271,16 @@ export const spec = {
           "pattern": "(?:cloudtrail\\.amazonaws\\.com[\\s\\S]*s3:PutObject|s3:PutObject[\\s\\S]*cloudtrail\\.amazonaws\\.com)",
           "flags": "i"
         },
+        "anchors": [
+          {
+            "pattern": "cloudtrail\\.amazonaws\\.com",
+            "flags": "i"
+          },
+          {
+            "pattern": "s3:PutObject",
+            "flags": "i"
+          }
+        ],
         "required": {
           "pattern": "aws:SourceArn",
           "flags": "i"
