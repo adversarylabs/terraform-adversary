@@ -1,4 +1,4 @@
-> **Shipped in 0.0.4:** , , , , , , , 
+> **Shipped in 0.0.11:** `terraform.public-ingress`, `terraform.s3-public-acl`, `terraform.rds-publicly-accessible`, `terraform.sensitive-output`, `terraform.inline-secret`, `terraform.iam-admin-wildcard`, `terraform.storage-unencrypted`, `terraform.cloudtrail-bucket-policy-source-arn`, `terraform.cloudfront-weak-viewer-tls`, `terraform.mutable-module`
 >
 > Rules documented below that are not in that list are deferred (not yet in `src/spec.ts`).
 
@@ -98,6 +98,18 @@ Public grounding includes common Terraform risk classes documented by HashiCorp 
 | **Stays quiet when** | `encrypted = true`; attribute absent (downgrade to low — never fire high on absence alone) |
 | **Public examples** | CIS AWS storage encryption controls; Checkov `CKV_AWS_3` / `CKV_AWS_16` families |
 | **Remediation** | Enable encryption with CMK/account default |
+
+### `terraform.cloudtrail-bucket-policy-source-arn`
+
+| | |
+| --- | --- |
+| **What** | A CloudTrail service-principal bucket-policy statement allows `s3:PutObject` without binding the write to an intended trail ARN |
+| **Why** | Without an `aws:SourceArn` condition, the service-principal grant lacks the recommended confused-deputy protection and may accept writes from an unintended trail |
+| **Looks for** | An HCL `statement` block in a `*.tf` file that contains both `cloudtrail.amazonaws.com` and `s3:PutObject` but no `aws:SourceArn` |
+| **Evidence** | Anchors the finding to the CloudTrail service principal or `s3:PutObject` action in that same statement; the missing `aws:SourceArn` condition is the required contract |
+| **Stays quiet when** | The same statement contains `aws:SourceArn`; either the CloudTrail principal or `s3:PutObject` action is absent; the principal and action occur only in separate statement blocks; or the policy is expressed outside the supported HCL `statement` shape |
+| **Public examples** | [AWS CloudTrail bucket-policy guidance](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-s3-bucket-policy-for-cloudtrail.html) recommends scoping service writes with `aws:SourceArn` |
+| **Remediation** | Add an `aws:SourceArn` condition to the CloudTrail `s3:PutObject` statement and bind it to the intended trail ARN or a deliberately scoped trail pattern |
 
 ---
 
