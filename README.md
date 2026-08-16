@@ -1,42 +1,21 @@
-# terraform
+# Terraform adversary
 
-**terraform** reviews Terraform HCL for **public exposure, secrets in configuration, encryption at rest, and supply-chain pinning** across cloud resources.
+Reviews Terraform for public exposure, secrets in HCL, encryption, and module pinning.
 
-It is an **IaC security reviewer**, not a general Terraform style linter. When it reports, infrastructure is likely exposed, non-reproducible, or shipping credentials in state.
+## Goals
 
-## What it does
+The adversary is designed to produce a small number of high-confidence,
+actionable findings grounded in concrete repository evidence. Its review should
+be deterministic where possible, explicit about impact, and quiet when the
+available evidence does not justify a finding.
 
-1. **Discovers** `*.tf` / `*.tf.json` files.
-2. **Runs deterministic detectors** for network exposure, public storage, DB accessibility, secrets, IAM, and module pinning.
-3. **Synthesizes a review** with file:line evidence.
-4. Optionally **enhances** with a model when provided.
+## Scope
 
-It never executes the scanned project as the product under review, never installs dependencies into it, and never needs network access to the target repository.
+It evaluates Terraform configuration for public exposure, IAM authority, secrets, encryption, state safety, dependency pinning, TLS policy, and service-specific access controls.
 
-## What it detects
+The complete detector or review inventory is maintained in
+[CHECKS.md](CHECKS.md).
 
-Every **shipped rule id**, severity, and short description lives in **[CHECKS.md](CHECKS.md)**.
+## Boundaries
 
-Highlights:
-
-| Area | Examples |
-| --- | --- |
-| Network | World CIDR on admin ports |
-| Storage | Public S3 ACL / public access block disabled |
-| Data | RDS publicly_accessible; unencrypted volumes |
-| Secrets | Unmarked sensitive outputs; password literals |
-| IAM / modules | Action=* Resource=*; mutable module ref=main |
-
-### Ownership boundaries
-
-| Concern | Owned by |
-| --- | --- |
-| Generic secret entropy in any file | [`security/secrets`](https://github.com/adversarylabs/secrets-adversary) |
-| Kubernetes YAML (non-TF) | [`kubernetes`](https://github.com/adversarylabs/kubernetes-adversary) |
-| Helm charts | [`helm`](https://github.com/adversarylabs/helm-adversary) |
-
-## Precision stance
-
-- **High confidence** only for deterministic, evidence-backed patterns.
-- Clean fixtures must stay quiet; vulnerable fixtures must fire.
-- Prefer missing a weak signal over a false positive on normal production code.
+It stays within this domain, does not execute target code, and leaves unrelated concerns to the corresponding specialist adversaries.
